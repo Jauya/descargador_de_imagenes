@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryState } from "nuqs";
 import { Alert } from "@heroui/alert";
 
@@ -49,7 +49,7 @@ export default function ImageGallery() {
           <Alert title={error} />
         </div>
       ) : (
-        <Suspense>{renderGallery()}</Suspense>
+        renderGallery()
       )}
     </div>
   );

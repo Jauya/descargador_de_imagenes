@@ -1,4 +1,5 @@
 import "@/styles/globals.css";
+import { Suspense } from "react";
 import { Metadata, Viewport } from "next";
 import clsx from "clsx";
 
@@ -41,10 +42,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
         )}
       >
         <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
-          <div className="w-full relative flex flex-col">
-            <Navbar />
-            <main className="">{children}</main>
-          </div>
+          <Suspense>
+            <div className="w-full relative flex flex-col">
+              <Navbar />
+              <main className="">{children}</main>
+            </div>
+          </Suspense>
         </Providers>
       </body>
     </html>
