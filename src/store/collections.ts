@@ -5,11 +5,22 @@ import { toast } from "react-toastify";
 import { Hit, Photo, Resource } from "@/types";
 
 interface States<T> {
+  loading: boolean;
+  downloadCount: number;
+  failedCount: number;
+
   collection: T[];
   limit: number;
 }
 
 interface Actions<T> {
+  setLoading: (loading: boolean) => void;
+  incrementDownloadCount: () => void;
+  incrementFailedCount: () => void;
+  resetDownloadCount: () => void;
+  resetFailedCount: () => void;
+  completeDownloadCount: () => void;
+
   setCollection: (resources: T[]) => void;
   toggleSelection: (resource: T) => void;
   clearCollectionByResources: (resources: T[]) => void;
@@ -26,10 +37,31 @@ const createCollectionStore = <T>(
   create<CollectionStore<T>>()(
     persist(
       (set, get) => ({
+        loading: false,
+        downloadCount: 0,
+        failedCount: 0,
+
         collection: [],
         limit,
+
+        setLoading: (loading) => set({ loading }),
+        incrementDownloadCount: () =>
+          set({ downloadCount: get().downloadCount + 1 }),
+        incrementFailedCount: () => set({ failedCount: get().failedCount + 1 }),
+        resetDownloadCount: () => set({ downloadCount: 0 }),
+        resetFailedCount: () => set({ failedCount: 0 }),
+        completeDownloadCount: () =>
+          set({ downloadCount: get().collection.length }),
+
         setCollection: (resources) => {
+          const currentLoading = get().loading;
           const currentCollection = get().collection;
+
+          if (currentLoading) {
+            toast.warning("Aun se estan descargando archivos");
+
+            return;
+          }
 
           if (currentCollection.length >= limit) {
             toast.error(`Límite alcanzado (${limit} imágenes)`);
@@ -54,10 +86,16 @@ const createCollectionStore = <T>(
             ]
           });
         },
-
         toggleSelection: (resource) => {
+          const currentLoading = get().loading;
           const currentCollection = get().collection;
           const itemId = getId(resource);
+
+          if (currentLoading) {
+            toast.warning("Aun se estan descargando archivos");
+
+            return;
+          }
 
           if (currentCollection.some((item) => getId(item) === itemId)) {
             set({
@@ -77,7 +115,14 @@ const createCollectionStore = <T>(
           }
         },
         clearCollectionByResources: (resources) => {
+          const currentLoading = get().loading;
           const currentCollection = get().collection;
+
+          if (currentLoading) {
+            toast.warning("Aun se estan descargando archivos");
+
+            return;
+          }
 
           set({
             collection: [
@@ -89,13 +134,25 @@ const createCollectionStore = <T>(
           });
         },
         clearCollection: () => {
+          const currentLoading = get().loading;
+
+          if (currentLoading) {
+            toast.warning("Aun se estan descargando archivos");
+
+            return;
+          }
+
           set({ collection: [] });
           toast.info("Colección vaciada");
         }
       }),
       {
         name,
-        storage: createJSONStorage(() => sessionStorage)
+        storage: createJSONStorage(() => sessionStorage),
+        partialize: (state) => ({
+          collection: state.collection,
+          limit: state.limit
+        })
       }
     )
   );

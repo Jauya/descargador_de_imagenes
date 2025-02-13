@@ -1,6 +1,5 @@
 import { useQueryState } from "nuqs";
 import clsx from "clsx";
-import { useState } from "react";
 import { Card, CardBody, CardFooter } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Progress } from "@heroui/progress";
@@ -18,15 +17,23 @@ export default function FreepikCollectionTab() {
   const [provider] = useQueryState("provider");
   const { apikeys } = useApikeyStore();
 
-  const { collection, toggleSelection } = useFreepikCollectionStore();
-
-  const [loading, setLoading] = useState(false);
-  const [downloadCount, setDownloadCount] = useState(0);
-  const [failedCount, setFailedCount] = useState(0);
+  const {
+    collection,
+    toggleSelection,
+    loading,
+    setLoading,
+    downloadCount,
+    incrementDownloadCount,
+    resetDownloadCount,
+    failedCount,
+    incrementFailedCount,
+    resetFailedCount,
+    completeDownloadCount
+  } = useFreepikCollectionStore();
 
   const handleDownload = async () => {
-    setDownloadCount(0);
-    setFailedCount(0);
+    resetDownloadCount();
+    resetFailedCount();
     if (collection.length === 0) {
       toast.warn("No hay imágenes en la colección.", {
         position: "top-right"
@@ -36,7 +43,6 @@ export default function FreepikCollectionTab() {
     }
 
     setLoading(true);
-    setDownloadCount(0);
 
     const zipWriter = new ZipWriter(new BlobWriter("application/zip"));
 
@@ -53,7 +59,7 @@ export default function FreepikCollectionTab() {
             position: "top-right",
             autoClose: 5000
           });
-          setDownloadCount(collection.length);
+          completeDownloadCount();
           setLoading(false);
 
           return;
@@ -65,7 +71,7 @@ export default function FreepikCollectionTab() {
             autoClose: 5000
           }
         );
-        setFailedCount((prev) => prev + 1);
+        incrementFailedCount();
         continue;
       }
 
@@ -80,14 +86,14 @@ export default function FreepikCollectionTab() {
           position: "top-right",
           autoClose: 5000
         });
-        setFailedCount((prev) => prev + 1);
+        incrementFailedCount();
         continue;
       }
 
       // 🔹 Agregar la imagen al ZIP
       await zipWriter.add(filename ?? `${resource.id}.jpg`, blobData.stream());
 
-      setDownloadCount((prev) => prev + 1); // ✅ Actualiza el contador
+      incrementDownloadCount();
     }
 
     const zipBlob = await zipWriter.close();
@@ -108,6 +114,10 @@ export default function FreepikCollectionTab() {
       autoClose: 3000
     });
 
+    setTimeout(() => {
+      resetDownloadCount();
+      resetFailedCount();
+    }, 5000);
     setLoading(false);
   };
 
@@ -127,7 +137,9 @@ export default function FreepikCollectionTab() {
                 <div
                   key={resource.id}
                   className="break-inside-avoid mb-2 cursor-pointer"
-                  onDoubleClick={() => toggleSelection(resource)}
+                  onDoubleClick={() => {
+                    if (!loading) toggleSelection(resource);
+                  }}
                 >
                   <Image
                     alt={resource.title}

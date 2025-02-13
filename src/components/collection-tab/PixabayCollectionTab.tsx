@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Card, CardBody, CardFooter } from "@heroui/card";
 import { Image } from "@heroui/image";
 import { Button } from "@heroui/button";
@@ -12,14 +11,22 @@ import { downloadImage } from "@/actions/downloadImage";
 import { usePixabayCollectionStore } from "@/store/collections";
 
 export default function PixabayCollectionTab() {
-  const { collection, toggleSelection } = usePixabayCollectionStore();
-  const [loading, setLoading] = useState(false);
-  const [downloadCount, setDownloadCount] = useState(0);
-  const [failedCount, setFailedCount] = useState(0);
+  const {
+    collection,
+    toggleSelection,
+    loading,
+    setLoading,
+    downloadCount,
+    incrementDownloadCount,
+    resetDownloadCount,
+    failedCount,
+    incrementFailedCount,
+    resetFailedCount
+  } = usePixabayCollectionStore();
 
   const handleDownload = async () => {
-    setDownloadCount(0);
-    setFailedCount(0);
+    resetDownloadCount();
+    resetFailedCount();
     if (collection.length === 0) {
       toast.warn("No hay imágenes en la colección.", {
         position: "top-right"
@@ -40,14 +47,14 @@ export default function PixabayCollectionTab() {
           position: "top-right",
           autoClose: 5000
         });
-        setFailedCount((prev) => prev + 1);
+        incrementFailedCount();
         continue;
       }
 
       if (resData) {
         await zipWriter.add(`${hit.id}.jpg`, resData.stream()); // ✅ Aquí convertimos Blob a ReadableStream
       }
-      setDownloadCount((prev) => prev + 1);
+      incrementDownloadCount();
     }
 
     const zipBlob = await zipWriter.close();
@@ -67,6 +74,11 @@ export default function PixabayCollectionTab() {
       position: "top-right",
       autoClose: 3000
     });
+
+    setTimeout(() => {
+      resetDownloadCount();
+      resetFailedCount();
+    }, 5000);
     setLoading(false);
   };
 
@@ -79,7 +91,9 @@ export default function PixabayCollectionTab() {
               <div
                 key={hit.id}
                 className="break-inside-avoid mb-2 cursor-pointer"
-                onDoubleClick={() => toggleSelection(hit)}
+                onDoubleClick={() => {
+                  if (!loading) toggleSelection(hit);
+                }}
               >
                 <Image
                   alt={hit.tags}

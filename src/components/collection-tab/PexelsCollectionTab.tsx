@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Card, CardBody, CardFooter } from "@heroui/card";
 import { Image } from "@heroui/image";
 import { Button } from "@heroui/button";
@@ -12,14 +11,22 @@ import { usePexelsCollectionStore } from "@/store/collections";
 import { downloadImage } from "@/actions/downloadImage";
 
 export default function PexelsCollectionTab() {
-  const { collection, toggleSelection } = usePexelsCollectionStore();
-  const [loading, setLoading] = useState(false);
-  const [downloadCount, setDownloadCount] = useState(0);
-  const [failedCount, setFailedCount] = useState(0);
+  const {
+    collection,
+    toggleSelection,
+    loading,
+    setLoading,
+    downloadCount,
+    incrementDownloadCount,
+    resetDownloadCount,
+    failedCount,
+    incrementFailedCount,
+    resetFailedCount
+  } = usePexelsCollectionStore();
 
   const handleDownload = async () => {
-    setDownloadCount(0);
-    setFailedCount(0);
+    resetDownloadCount();
+    resetFailedCount();
     if (collection.length === 0) {
       toast.warn("No hay imágenes en la colección.", {
         position: "top-right"
@@ -40,14 +47,14 @@ export default function PexelsCollectionTab() {
           position: "top-right",
           autoClose: 5000
         });
-        setFailedCount((prev) => prev + 1);
+        incrementFailedCount();
         continue;
       }
 
       if (resData) {
         await zipWriter.add(`${photo.id}.jpg`, resData.stream()); // ✅ Aquí convertimos Blob a ReadableStream
       }
-      setDownloadCount((prev) => prev + 1);
+      incrementDownloadCount();
     }
 
     const zipBlob = await zipWriter.close();
@@ -67,6 +74,11 @@ export default function PexelsCollectionTab() {
       position: "top-right",
       autoClose: 3000
     });
+
+    setTimeout(() => {
+      resetDownloadCount();
+      resetFailedCount();
+    }, 5000);
     setLoading(false);
   };
 
@@ -79,7 +91,9 @@ export default function PexelsCollectionTab() {
               <div
                 key={photo.id}
                 className="break-inside-avoid mb-2 cursor-pointer"
-                onDoubleClick={() => toggleSelection(photo)}
+                onDoubleClick={() => {
+                  if (!loading) toggleSelection(photo);
+                }}
               >
                 <Image
                   alt={photo.alt}
